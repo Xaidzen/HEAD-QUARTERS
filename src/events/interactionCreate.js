@@ -1,56 +1,81 @@
+const {
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder
+} = require('discord.js');
+
+const verification = require('../modules/verification');
+
 module.exports = {
   name: 'interactionCreate',
 
   async execute(interaction) {
+    try {
+      if (interaction.isButton()) {
+        if (interaction.customId === 'enter_api_key') {
+          const modal = new ModalBuilder()
+            .setCustomId('api_key_modal')
+            .setTitle('API Key Verification');
 
-    // ================================
-    // SLASH COMMANDS
-    // ================================
+          const apiKeyInput = new TextInputBuilder()
+            .setCustomId('api_key')
+            .setLabel('Torn API Key')
+            .setPlaceholder('Enter your Full Access or Custom API key')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(10)
+            .setMaxLength(100);
 
-    if (interaction.isChatInputCommand()) {
-      const command = interaction.client.commands.get(
-        interaction.commandName
-      );
+          const row = new ActionRowBuilder()
+            .addComponents(apiKeyInput);
 
-      if (!command) return;
+          modal.addComponents(row);
 
-      try {
-        await command.execute(interaction);
-      } catch (error) {
-        console.error(error);
-
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp({
-            content: '❌ Something went wrong while running this command.',
-            ephemeral: true
-          });
-        } else {
-          await interaction.reply({
-            content: '❌ Something went wrong while running this command.',
-            ephemeral: true
-          });
+          await interaction.showModal(modal);
         }
+
+        return;
       }
 
-      return;
-    }
+      if (interaction.isModalSubmit()) {
+        if (interaction.customId !== 'api_key_modal') {
+          return;
+        }
 
-    // ================================
-    // BUTTONS
-    // ================================
+        const apiKey = interaction.fields
+          .getTextInputValue('api_key')
+          .trim();
 
-    if (interaction.isButton()) {
-
-      if (interaction.customId === 'verify_account') {
-
-        await interaction.reply({
-          content: '🔐 Verification system is ready. API key setup will be added next!',
+        await interaction.deferReply({
           ephemeral: true
         });
 
+        const result = await verification.verifyMember(
+          interaction.member,
+          apiKey
+        );
+
+        await interaction.editReply(
+          `✅ **Verification successful!**\n\n` +
+          `👤 Torn Account: **${result.tornUser.name}**\n` +
+          `🆔 Torn ID: **${result.tornUser.id}**\n\n` +
+          `You now have access to the verified member areas.`
+        );
       }
+    } catch (error) {
+      console.error('[VERIFICATION ERROR]', error);
 
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply(
+          `❌ **Verification failed**\n\n${error.message}`
+        );
+      } else {
+        await interaction.reply({
+          content: `❌ **Verification failed**\n\n${error.message}`,
+          ephemeral: true
+        });
+      }
     }
-
   }
 };
