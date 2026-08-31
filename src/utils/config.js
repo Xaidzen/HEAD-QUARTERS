@@ -7,10 +7,9 @@ module.exports = {
   },
 
   channels: {
-    enter: process.env.ENTER_CHANNEL_ID
+    enter: process.env.ENTER_CHANNEL_ID,
+    service: process.env.SERVICE_CHANNEL_ID
   },
 
-  torn: {
-    apiUrl: 'https://api.torn.com'
-  }
+  tornApiUrl: 'https://api.torn.com'
 };
