@@ -1,88 +1,114 @@
-const DESIGN = {
+const {
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder
+} = require('discord.js');
 
-  // ================================
-  // BOT BRANDING
-  // ================================
+const verification = require('../modules/verification');
+const config = require('../utils/config');
 
-  botName: 'Test Bot',
+module.exports = {
+  name: 'interactionCreate',
 
-  botDescription: 'YOUR BOT DESCRIPTION',
+  async execute(interaction) {
+    try {
+      // Enter API Key button
+      if (
+        interaction.isButton() &&
+        interaction.customId === 'enter_api_key'
+      ) {
+        if (
+          interaction.channel.id !==
+          config.channels.enter
+        ) {
+          return interaction.reply({
+            content:
+              '❌ API verification is only available in #Enter.',
+            ephemeral: true
+          });
+        }
 
-  // ================================
-  // EMOJIS
-  // ================================
+        const modal = new ModalBuilder()
+          .setCustomId('api_key_modal')
+          .setTitle('API Key Verification');
 
-  emojis: {
-    success: '✔️',
-    error: '❌',
-    warning: '⚠️',
-    loading: '⏳',
-    info: 'ℹ️',
-    verified: '🔰',
-    user: '👤',
-    id: '🆔',
-    ticket: '🎫',
-    staff: '🛡️'
-  },
+        const apiKeyInput = new TextInputBuilder()
+          .setCustomId('api_key')
+          .setLabel('Torn API Key')
+          .setPlaceholder(
+            'Paste your Full Access or Custom API key'
+          )
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMinLength(10)
+          .setMaxLength(100);
 
-  // ================================
-  // EMBED COLORS
-  // ================================
+        const row = new ActionRowBuilder()
+          .addComponents(apiKeyInput);
 
-  colors: {
-    primary: 0x5865F2,
-    success: 0x57F287,
-    error: 0xED4245,
-    warning: 0xFEE75C,
-    info: 0x3498DB
-  },
+        modal.addComponents(row);
 
-  // ================================
-  // FOOTER
-  // ================================
+        return interaction.showModal(modal);
+      }
 
-  footer: {
-    text: 'YOUR BOT NAME • Torn City'
-  },
+      // API key modal
+      if (
+        interaction.isModalSubmit() &&
+        interaction.customId === 'api_key_modal'
+      ) {
+        const apiKey = interaction.fields
+          .getTextInputValue('api_key')
+          .trim();
 
-  // ================================
-  // VERIFICATION
-  // ================================
+        await interaction.deferReply({
+          ephemeral: true
+        });
 
-  verification: {
-    title: 'Verify',
+        const result =
+          await verification.verifyMember(
+            interaction.member,
+            apiKey
+          );
 
-    description:
-      'Link your Torn City API key to your Discord account.',
+        const serviceChannel =
+          config.channels.service
+            ? `<#${config.channels.service}>`
+            : '**Service Channel**';
 
-    buttonText: 'Verify Account',
+        await interaction.editReply(
+          `## ✅ Verification Successful!\n\n` +
+          `Verification successful! Thank you, <@${interaction.user.id}>, for joining us! 😊🤝\n\n` +
+          `Please proceed to the ${serviceChannel} to access:\n\n` +
+          `> 💰 **Loss Seller**\n` +
+          `> 💵 **Loss Buyer**\n` +
+          `> 🏃 **Escape Seller**\n` +
+          `> 🎯 **Bounty Seller**\n` +
+          `> 🔓 **Bust Seller**\n` +
+          `> ✨ **And more!**\n\n` +
+          `We're glad to have you here. **Welcome!** 🤝`
+        );
+      }
+    } catch (error) {
+      console.error(
+        '[VERIFICATION ERROR]',
+        error
+      );
 
-    successTitle: 'Verification Successful!',
+      const message =
+        `❌ **Verification Failed**\n\n${error.message}`;
 
-    successMessage:
-      'Your Torn City account has been successfully linked.',
-
-    errorTitle: 'Verification Failed',
-
-    errorMessage:
-      'We could not verify your Torn City API key, please use full access or custom API Key'
-  },
-
-  // ================================
-  // TICKETS
-  // ================================
-
-  tickets: {
-    title: 'Support Ticket',
-
-    description:
-      'Click the button below to create a support ticket.',
-
-    createButton: 'Create Ticket',
-
-    closeButton: 'Close Ticket'
+      if (
+        interaction.deferred ||
+        interaction.replied
+      ) {
+        await interaction.editReply(message);
+      } else {
+        await interaction.reply({
+          content: message,
+          ephemeral: true
+        });
+      }
+    }
   }
-
 };
-
-module.exports = DESIGN;
