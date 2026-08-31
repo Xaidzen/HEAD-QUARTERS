@@ -9,23 +9,26 @@ module.exports = {
         return;
       }
 
-      const unverifiedRole = member.guild.roles.cache.get(
-        config.roles.unverified
-      );
+      const unverifiedRole =
+        member.guild.roles.cache.get(
+          config.roles.unverified
+        );
 
       if (!unverifiedRole) {
-        console.error('❌ Unverified role was not found.');
+        console.error(
+          '❌ Unverified role not found.'
+        );
         return;
       }
 
       await member.roles.add(unverifiedRole);
 
       console.log(
-        `✅ Added Unverified role to ${member.user.tag}`
+        `✅ Unverified role added to ${member.user.tag}`
       );
     } catch (error) {
       console.error(
-        `❌ Failed to assign Unverified role: ${error.message}`
+        `❌ Failed to add Unverified role: ${error.message}`
       );
     }
   }
