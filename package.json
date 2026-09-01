@@ -1,7 +1,7 @@
 {
-  "name": "torn-discord-bot",
-  "version": "1.8.3",
-  "description": "My Torn City Discord bot",
+  "name": "torn-headquarters",
+  "version": "1.0.0",
+  "description": "Torn HQ Discord verification bot",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js"
