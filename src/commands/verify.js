@@ -1,4 +1,3 @@
-
 const {
   SlashCommandBuilder
 } = require('discord.js');
@@ -13,7 +12,7 @@ module.exports = {
         .setDescription('The member to verify.')
         .setRequired(true)
     )
-    .setDefaultMemberPermissions('Administrator'),
+    .setDefaultMemberPermissions('8'),
 
   async execute(interaction) {
     const user = interaction.options.getUser('user');
