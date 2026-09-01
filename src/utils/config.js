@@ -2,6 +2,7 @@ require('dotenv').config();
 
 module.exports = {
   discordToken: process.env.DISCORD_TOKEN,
+
   clientId: process.env.CLIENT_ID,
 
   guildId: process.env.TARGET_GUILD_ID,
@@ -16,5 +17,6 @@ module.exports = {
     service: process.env.SERVICE_CHANNEL_ID
   },
 
-  tornApiUrl: process.env.TORN_API_URL || 'https://api.torn.com'
+  tornApiUrl:
+    process.env.TORN_API_URL || 'https://api.torn.com'
 };
