@@ -1,70 +1,106 @@
-require('dotenv').config();
-
 const {
   Client,
-  GatewayIntentBits,
-  Collection
+  Collection,
+  GatewayIntentBits
 } = require('discord.js');
 
 const fs = require('fs');
 const path = require('path');
+const config = require('./utils/config');
+
+if (!config.discordToken) {
+  console.error('❌ DISCORD_TOKEN is missing from .env');
+  process.exit(1);
+}
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.GuildMembers
   ]
 });
 
 client.commands = new Collection();
 
-// ================================
-// LOAD COMMANDS
-// ================================
-
 const commandsPath = path.join(__dirname, 'commands');
 
-const commandFiles = fs
-  .readdirSync(commandsPath)
-  .filter(file => file.endsWith('.js'));
+if (fs.existsSync(commandsPath)) {
+  const commandFiles = fs
+    .readdirSync(commandsPath)
+    .filter(file => file.endsWith('.js'));
 
-for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
-  const command = require(filePath);
+  for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
 
-  client.commands.set(command.data.name, command);
+    if (!command.data || !command.execute) {
+      console.error(`❌ Invalid command file: ${file}`);
+      continue;
+    }
 
-  console.log(`📂 Loaded command: /${command.data.name}`);
+    client.commands.set(command.data.name, command);
+
+    console.log(`📂 Loaded command: /${command.data.name}`);
+  }
 }
-
-// ================================
-// LOAD EVENTS
-// ================================
 
 const eventsPath = path.join(__dirname, 'events');
 
-const eventFiles = fs
-  .readdirSync(eventsPath)
-  .filter(file => file.endsWith('.js'));
+if (fs.existsSync(eventsPath)) {
+  const eventFiles = fs
+    .readdirSync(eventsPath)
+    .filter(file => file.endsWith('.js'));
 
-for (const file of eventFiles) {
-  const filePath = path.join(eventsPath, file);
-  const event = require(filePath);
+  for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
 
-  if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args));
-  } else {
-    client.on(event.name, (...args) => event.execute(...args));
+    if (!event.name || !event.execute) {
+      console.error(`❌ Invalid event file: ${file}`);
+      continue;
+    }
+
+    if (event.once) {
+      client.once(event.name, (...args) => event.execute(...args));
+    } else {
+      client.on(event.name, (...args) => event.execute(...args));
+    }
+
+    console.log(`📂 Loaded event: ${event.name}`);
   }
-
-  console.log(`📂 Loaded event: ${event.name}`);
 }
 
-// ================================
-// LOGIN
-// ================================
+client.once('ready', async () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
+  console.log(`🏠 Guild ID: ${config.guildId}`);
+});
 
-client.login(process.env.DISCORD_TOKEN);
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+
+  const command = client.commands.get(interaction.commandName);
+
+  if (!command) return;
+
+  try {
+    await command.execute(interaction);
+  } catch (error) {
+    console.error(
+      `[COMMAND ERROR] ${interaction.commandName}:`,
+      error
+    );
+
+    const message = {
+      content: '❌ An error occurred while running this command.',
+      ephemeral: true
+    };
+
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp(message).catch(() => {});
+    } else {
+      await interaction.reply(message).catch(() => {});
+    }
+  }
+});
+
+client.login(config.discordToken);
